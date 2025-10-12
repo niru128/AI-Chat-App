@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
-import Sidebar from '../components/Sidebar';
-import ChatWindow from '../components/ChatWindow';
-import TopBar from '../components/TopBar';
+import Sidebar from '../components/Sidebar.jsx';
+import ChatWindow from '../components/ChatWindow.jsx';
+import TopBar from '../components/TopBar.jsx';
 import { useSelector, useDispatch } from 'react-redux';
 import socket from '../socket';
 import { initCredits, restoreChat, setCurrentChat, fetchMessages } from '../features/chatSlice';
