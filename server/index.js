@@ -6,7 +6,7 @@ import chatRoutes from "./routes/chat.js";
 import orgRoutes from "./routes/org.js";
 import notifRoutes from "./routes/notification.js";
 import { initSocket } from "./socket.js";
-import cors from "cors";
+// import cors from "cors";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 dotenv.config();
@@ -15,8 +15,29 @@ const app = express();
 app.use(express.json());
 app.use(cookieParser());
 
+import cors from "cors";
+
+const allowedOrigins = [
+  'https://ai-chat-app-sooty.vercel.app',
+  'http://localhost:5173'
+];
+
 app.use(cors({
-  origin: [process.env.FRONTEND_URL, 'http://localhost:5173'],
+  origin: function(origin, callback){
+    if(!origin) return callback(null, true); // allow non-browser requests like Postman
+    if(allowedOrigins.indexOf(origin) === -1){
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
+}));
+
+// Handle preflight OPTIONS requests
+app.options('*', cors({
+  origin: allowedOrigins,
   credentials: true
 }));
 
