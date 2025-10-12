@@ -68,7 +68,7 @@ export default function Dashboard() {
 
     return () => {
       socket.off('notification');
-      socket.disconnect();
+      // socket.disconnect();
     };
   }, []);
 

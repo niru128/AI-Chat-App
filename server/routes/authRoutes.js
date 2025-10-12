@@ -15,39 +15,46 @@ dotenv.config();
 const router = express.Router();
 
 const signToken = (user) => jwt.sign({id : user._id}, process.env.JWT_SECRET, {expiresIn: '7d'});
-
 router.post('/signup', async (req, res) => {
-        const {username, email, password } = req.body;
-        try{
+  console.log("Signup body:", req.body); // log for debugging
 
-            if(!email || !password || !username){
-                return res.status(400).json({message: "Please provide all required fields"});
-            }
+  const { username, email, password } = req.body;
 
-            const existingUser = await User.findOne({email});
-            if(existingUser){
-                return res.status(400).json({message: "User already exists"});
-            }
+  try {
+    if (!email || !password || !username) {
+      return res.status(400).json({ message: "Please provide all required fields" });
+    }
 
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash(password, salt);
-            const user = await User.create({email, passwordHash: hashedPassword, username});
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ message: "User already exists" });
+    }
 
-            const org = await Organization.create({
-                name: `${username || email}-org`, members: [{ user: user._id, role: "admin"}]
-            })
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+    const user = await User.create({ email, passwordHash: hashedPassword, username });
 
-            user.organization.push(org._id);
-            user.activeOrganization = org._id;
-            // user.credits = 10; 
-            await user.save();
-            const token = signToken(user);
-            res.json({token, user: { id: user._id,username: user.username, email: user.email, credits: user.credits }})
-        }catch(error){
-            res.status(500).json({message: "Server error", error: error.message});
-            console.log(error);
-        }
-})
+    const org = await Organization.create({
+      name: `${username || email}-org`,
+      members: [{ user: user._id, role: "admin" }]
+    });
+
+    user.organization.push(org._id);
+    user.activeOrganization = org._id;
+    await user.save();
+
+    const token = signToken(user);
+
+    res.json({
+      token,
+      user: { id: user._id, username: user.username, email: user.email, credits: user.credits }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+});
+
 
 
 router.post('/login', async (req, res) => {
