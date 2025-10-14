@@ -14,7 +14,18 @@ export default function Sidebar() {
     <div className="w-64 bg-white h-full  p-2 flex flex-col shadow-xl shadow-blue-200">
       <div className="flex flex-col items-start justify-start p-2 space-y-4">
         <h3 className="font-semibold">Conversations</h3>
-        <button onClick={() => {dispatch(createChat());dispatch(fetchMessages(c._id));}} className="text-sm px-4 cursor-pointer hover:bg-blue-500 py-3 bg-blue-600 text-white rounded-2xl w-full">New</button>
+        <button
+  onClick={async () => {
+    const res = await dispatch(createChat()).unwrap();
+    // after chat is created, fetch its messages and set it as current
+    dispatch(setCurrentChat(res._id));
+    dispatch(fetchMessages(res._id));
+  }}
+  className="text-sm px-4 cursor-pointer hover:bg-blue-500 py-3 bg-blue-600 text-white rounded-2xl w-full"
+>
+  New
+</button>
+
       </div>
       <div className="mt-2 overflow-y-auto flex-1">
         {chats.map(c => (

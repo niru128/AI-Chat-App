@@ -36,18 +36,31 @@ export const createChat = createAsyncThunk('chat/createChat', async () => {
 });
 
 // Send message
+// Send message (optimistic update)
 export const sendMessage = createAsyncThunk(
   'chat/sendMessage',
-  async ({ chatId, content }) => {
-    const res = await API.post(`/chat/${chatId}/message`, { content });
-    return {
-      chatId,
-      userMessage: content,
-      assistantMessage: res.data.message,
-      remainingCredits: res.data.remainingCredits,
-    };
+  async ({ chatId, content }, { dispatch }) => {
+    // Optimistic UI: immediately show the user message
+    dispatch({
+      type: 'chat/addTemporaryMessage',
+      payload: { chatId, role: 'user', content },
+    });
+
+    try {
+      const res = await API.post(`/chat/${chatId}/message`, { content });
+
+      return {
+        chatId,
+        assistantMessage: res.data.message,
+        remainingCredits: res.data.remainingCredits,
+      };
+    } catch (error) {
+      console.error(error);
+      throw error;
+    }
   }
 );
+
 
 const chatSlice = createSlice({
   name: 'chat',
@@ -58,14 +71,20 @@ const chatSlice = createSlice({
       localStorage.setItem('currentChat', action.payload); // ✅ persist selected chat
     },
     restoreChat(state, action) {
-  const saved = localStorage.getItem('currentChat');
-  if (saved) {
-    state.currentChat = saved;
-  }
-},
+      const saved = localStorage.getItem('currentChat');
+      if (saved) {
+        state.currentChat = saved;
+      }
+    },
     initCredits(state, action) {
       state.remainingCredits = action.payload ?? 0;
-    }
+    },
+    addTemporaryMessage(state, action) {
+      const { chatId, role, content } = action.payload;
+      if (!state.messages[chatId]) state.messages[chatId] = [];
+      state.messages[chatId].push({ role, content });
+    },
+
   },
 
   extraReducers: (builder) => {
@@ -102,31 +121,38 @@ const chatSlice = createSlice({
       // Send message
       .addCase(sendMessage.pending, (state) => {
         state.sendMessageStatus = 'loading';
-        state.error = null;
+        state.isAITyping = true; // show typing bubble
       })
       .addCase(sendMessage.fulfilled, (state, action) => {
-        const { chatId, userMessage, assistantMessage, remainingCredits } = action.payload;
-
+        const { chatId, assistantMessage, remainingCredits } = action.payload;
         if (!state.messages[chatId]) state.messages[chatId] = [];
-        state.messages[chatId].push({ role: 'user', content: userMessage });
-        state.messages[chatId].push({ role: 'assistant', content: assistantMessage.content });
+
+        // remove "typing" message if it exists
+        state.messages[chatId] = state.messages[chatId].filter(
+          m => m.role !== 'typing'
+        );
+
+        // add final assistant reply
+        state.messages[chatId].push({
+          role: 'assistant',
+          content: assistantMessage.content
+        });
 
         state.remainingCredits = remainingCredits;
-
-        // persist credits
-        const userStr = localStorage.getItem('user');
-        if (userStr) {
-          const user = JSON.parse(userStr);
-          user.credits = remainingCredits;
-          localStorage.setItem('user', JSON.stringify(user));
-        }
+        state.isAITyping = false;
       })
+      // .addCase(sendMessage.rejected, (state) => {
+      //   state.isAITyping = false;
+      // })
+
+
       .addCase(fetchMessages.fulfilled, (state, action) => {
-  const { chatId, messages } = action.payload;
-  state.messages[chatId] = messages;
-})
+        const { chatId, messages } = action.payload;
+        state.messages[chatId] = messages;
+      })
       .addCase(sendMessage.rejected, (state, action) => {
         state.sendMessageStatus = 'failed';
+        state.isAITyping = false;
         state.error = action.error.message;
       });
   },

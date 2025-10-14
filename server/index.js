@@ -36,10 +36,12 @@ app.use(cors({
 }));
 
 // Handle preflight OPTIONS requests
-app.options('*', cors({
+// Handle preflight OPTIONS requests
+app.options(/.*/, cors({
   origin: allowedOrigins,
   credentials: true
 }));
+
 
 
 connectDB();

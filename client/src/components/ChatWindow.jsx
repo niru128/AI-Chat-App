@@ -6,29 +6,34 @@ import { selectMessagesByChat } from '../features/chatSelectors';
 export default function ChatWindow() {
   const dispatch = useDispatch();
   const currentChat = useSelector((state) => state.chat.currentChat);
+  const isAITyping = useSelector((state) => state.chat.isAITyping);
+
 
   // Use memoized selector
   const messages = useSelector((state) =>
     selectMessagesByChat(state, currentChat)
   );
   useEffect(() => {
-  dispatch(restoreChat());
-}, [dispatch]);
+    dispatch(restoreChat());
+  }, [dispatch]);
 
 
   const [text, setText] = useState('');
 
-  const onSend = async () => {
-    if (!text.trim() || !currentChat) return;
+ const onSend = async () => {
+  if (!text.trim() || !currentChat) return;
 
-    try {
-      await dispatch(sendMessage({ chatId: currentChat, content: text })).unwrap();
-      setText('');
-    } catch (err) {
-      console.error(err);
-      alert('Failed to send message');
-    }
-  };
+  const messageToSend = text;
+  setText(''); // clear immediately for snappy UX
+
+  try {
+    await dispatch(sendMessage({ chatId: currentChat, content: messageToSend })).unwrap();
+  } catch (err) {
+    console.error(err);
+    alert('Failed to send message');
+  }
+};
+
 
   // Scroll to bottom whenever messages update
   useEffect(() => {
@@ -40,9 +45,30 @@ export default function ChatWindow() {
     return <div className="flex-1 flex items-center justify-center">Select or create a chat</div>;
 
   return (
-    <div className="flex-1 flex flex-col h-full py-10 px-20">
+    <div className="flex-1 flex flex-col min-h-screen py-10 px-20">
       <div id="chat-container" className="flex-1 overflow-y-auto p-4 space-y-6">
         {messages.map((m, i) => {
+          {
+            isAITyping && (
+              <div className="flex justify-start">
+                <div className="max-w-xl flex flex-col gap-1 items-start text-left">
+                  <div className="flex items-center gap-2 flex-row">
+                    <div className="w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold bg-gray-500">
+                      🤖
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-gray-600">
+                      <span className="font-semibold">AI Assistant</span>
+                      <span>{new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                  <div className="p-3 rounded-lg shadow-sm bg-gray-100 text-gray-600 italic animate-pulse">
+                    AI Assistant is typing…
+                  </div>
+                </div>
+              </div>
+            )
+          }
+
           const isUser = m.role !== 'assistant';
           const time = new Date(m.createdAt || Date.now()).toLocaleTimeString([], {
             hour: '2-digit',
@@ -76,8 +102,8 @@ export default function ChatWindow() {
                 {/* Message bubble */}
                 <div
                   className={`p-3 rounded-lg shadow-sm ${isUser
-                      ? 'bg-blue-600 text-white rounded-tr-none'
-                      : 'bg-gray-100 text-gray-800 rounded-tl-none'
+                    ? 'bg-blue-600 text-white rounded-tr-none'
+                    : 'bg-gray-100 text-gray-800 rounded-tl-none'
                     }`}
                 >
                   {typeof m.content === 'string'
