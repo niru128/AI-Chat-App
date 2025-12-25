@@ -1,8 +1,8 @@
-# ChatX - AI Chat Dashboard
+#  AI Chat App Dashboard
 
 ## Overview
 
-ChatX is a real-time AI-powered chat application built with **React**, **Redux Toolkit**, **Node.js**, **Express**, and **MongoDB**. The platform allows authenticated users to create chats, send messages, and interact with an AI assistant. Credits are consumed based on AI usage, and the app provides real-time notifications using **WebSockets**.
+AI-Chat-App is a real-time AI-powered chat application built with **React**, **Redux Toolkit**, **Node.js**, **Express**, and **MongoDB**. The platform allows authenticated users to create chats, send messages, and interact with an AI assistant. Credits are consumed based on AI usage, and the app provides real-time notifications using **WebSockets**.
 
 ---
 
